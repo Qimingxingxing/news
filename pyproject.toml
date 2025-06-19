@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "news-polling-service"
+version = "0.1.0"
+description = "A long-running service that polls news from NewsAPI and writes to Kafka"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+confluent-kafka = "^2.3.0"
+requests = "^2.31.0"
+python-dotenv = "^1.0.0"
+schedule = "^1.2.0"
+pydantic = "^2.5.0"
+loguru = "^0.7.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+black = "^23.0.0"
+flake8 = "^6.0.0"
+mypy = "^1.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true 
