@@ -25,6 +25,20 @@ class Config:
     KAFKA_TOPIC_NEWS = os.getenv("KAFKA_TOPIC_NEWS", "news-articles")
     KAFKA_TOPIC_RAW_NEWS = os.getenv("KAFKA_TOPIC_RAW_NEWS", "raw-news")
     
+    # Redis Configuration
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)
+    REDIS_DEDUP_KEY_PREFIX = os.getenv("REDIS_DEDUP_KEY_PREFIX", "news:dedup")
+    REDIS_DEDUP_TTL_HOURS = int(os.getenv("REDIS_DEDUP_TTL_HOURS", "24"))
+    
+    # Article Scraping Configuration
+    ENABLE_ARTICLE_SCRAPING = os.getenv("ENABLE_ARTICLE_SCRAPING", "true").lower() == "true"
+    SCRAPING_TIMEOUT = int(os.getenv("SCRAPING_TIMEOUT", "10"))
+    SCRAPING_MAX_RETRIES = int(os.getenv("SCRAPING_MAX_RETRIES", "3"))
+    SCRAPING_RATE_LIMIT_DELAY = float(os.getenv("SCRAPING_RATE_LIMIT_DELAY", "0.5"))
+    
     # Polling Configuration
     POLLING_INTERVAL_MINUTES = int(os.getenv("POLLING_INTERVAL_MINUTES", "15"))
     MAX_ARTICLES_PER_REQUEST = int(os.getenv("MAX_ARTICLES_PER_REQUEST", "100"))

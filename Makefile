@@ -12,6 +12,8 @@ help:
 	@echo "  up         - Start services with Docker Compose"
 	@echo "  down       - Stop services with Docker Compose"
 	@echo "  logs       - View service logs"
+	@echo "  redis-cli  - Connect to Redis CLI"
+	@echo "  redis-info - Show Redis information"
 	@echo "  setup      - Initial setup (install + create .env)"
 
 # Install dependencies
@@ -95,4 +97,14 @@ restart:
 clean-docker:
 	@echo "Cleaning Docker containers and volumes..."
 	docker-compose down -v
-	docker system prune -f 
+	docker system prune -f
+
+# Redis CLI
+redis-cli:
+	@echo "Connecting to Redis CLI..."
+	docker-compose exec redis redis-cli
+
+# Redis information
+redis-info:
+	@echo "Redis information..."
+	docker-compose exec redis redis-cli info 

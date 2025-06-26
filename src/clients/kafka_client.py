@@ -6,8 +6,8 @@ from typing import Dict, Any, Optional, Callable
 from confluent_kafka import Producer, KafkaError, KafkaException
 from loguru import logger
 
-from .config import Config
-from .models import KafkaNewsMessage
+from ..config import Config
+from ..models import KafkaNewsMessage
 
 
 class NewsKafkaProducer:

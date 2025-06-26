@@ -67,12 +67,30 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     restart: unless-stopped
 
+  # Redis for deduplication
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   # News Polling Service
   news-polling-service:
     build: .
     container_name: news-polling-service
     depends_on:
       kafka:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       # NewsAPI Configuration
@@ -83,6 +101,19 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - KAFKA_TOPIC_NEWS=news-articles
       - KAFKA_TOPIC_RAW_NEWS=raw-news
+      
+      # Redis Configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_DEDUP_KEY_PREFIX=news:dedup
+      - REDIS_DEDUP_TTL_HOURS=24
+      
+      # Article Scraping Configuration
+      - ENABLE_ARTICLE_SCRAPING=true
+      - SCRAPING_TIMEOUT=10
+      - SCRAPING_MAX_RETRIES=3
+      - SCRAPING_RATE_LIMIT_DELAY=0.5
       
       # Polling Configuration
       - POLLING_INTERVAL_MINUTES=5
@@ -123,4 +154,6 @@ volumes:
   zookeeper-logs:
     driver: local
   kafka-data:
+    driver: local
+  redis-data:
     driver: local 

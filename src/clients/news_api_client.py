@@ -5,8 +5,8 @@ from typing import Dict, Any, List, Optional
 import requests
 from loguru import logger
 
-from .config import Config
-from .models import NewsAPIResponse, PollingJobConfig
+from ..config import Config
+from ..models import NewsAPIResponse, PollingJobConfig
 
 
 class NewsAPIClient:

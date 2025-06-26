@@ -7,6 +7,8 @@ A long-running service that polls news data from [NewsAPI](https://newsapi.org/)
 - **Continuous Polling**: Automatically polls NewsAPI at configurable intervals
 - **Multi-Country Support**: Fetches news from multiple countries (US, UK, Canada, Australia)
 - **Category-Based Filtering**: Supports different news categories (business, technology, science, health)
+- **Redis Deduplication**: Prevents duplicate articles using Redis-based caching
+- **Article Scraping**: Extracts full article content from news URLs using multiple scraping methods
 - **Kafka Integration**: Writes news data to Kafka topics for downstream processing
 - **Docker Support**: Fully containerized with Docker and Docker Compose
 - **Poetry Dependency Management**: Modern Python dependency management
@@ -19,14 +21,33 @@ A long-running service that polls news data from [NewsAPI](https://newsapi.org/)
 The service consists of several components:
 
 1. **NewsAPI Client**: Fetches news data from NewsAPI
-2. **Kafka Producer**: Writes news data to Kafka topics
-3. **Polling Service**: Orchestrates the polling process
-4. **Configuration Management**: Handles environment variables and settings
+2. **Redis Client**: Handles article deduplication and caching
+3. **Article Scraper**: Extracts full content from article URLs
+4. **Kafka Producer**: Writes news data to Kafka topics
+5. **Polling Service**: Orchestrates the polling process
+6. **Configuration Management**: Handles environment variables and settings
 
 ### Kafka Topics
 
-- `raw-news`: Raw news data from NewsAPI
+- `raw-news`: Raw news data from NewsAPI (deduplicated and with scraped content)
 - `news-articles`: Processed news articles (for future use)
+
+### Redis Deduplication
+
+The service uses Redis to prevent duplicate articles from being processed:
+- **Key Strategy**: `news:dedup:{md5_hash(title:source)}`
+- **TTL**: Configurable expiration (default: 24 hours)
+- **Deduplication Logic**: Based on article title + source name
+- **Fallback**: If Redis is unavailable, articles are processed normally
+
+### Article Scraping
+
+The service extracts full article content using multiple scraping methods:
+- **Trafilatura**: Primary method for article extraction
+- **Newspaper3k**: Secondary method for news sites
+- **BeautifulSoup**: Fallback method for general HTML parsing
+- **Rate Limiting**: Configurable delays to be respectful to websites
+- **Error Handling**: Graceful fallback if scraping fails
 
 ## Prerequisites
 
@@ -71,6 +92,16 @@ The service consists of several components:
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka broker addresses | `localhost:9092` |
 | `KAFKA_TOPIC_NEWS` | Topic for processed news | `news-articles` |
 | `KAFKA_TOPIC_RAW_NEWS` | Topic for raw news data | `raw-news` |
+| `REDIS_HOST` | Redis server host | `localhost` |
+| `REDIS_PORT` | Redis server port | `6379` |
+| `REDIS_DB` | Redis database number | `0` |
+| `REDIS_PASSWORD` | Redis password (optional) | - |
+| `REDIS_DEDUP_KEY_PREFIX` | Redis key prefix for deduplication | `news:dedup` |
+| `REDIS_DEDUP_TTL_HOURS` | TTL for deduplication keys in hours | `24` |
+| `ENABLE_ARTICLE_SCRAPING` | Enable article content scraping | `true` |
+| `SCRAPING_TIMEOUT` | HTTP timeout for scraping in seconds | `10` |
+| `SCRAPING_MAX_RETRIES` | Maximum retry attempts for scraping | `3` |
+| `SCRAPING_RATE_LIMIT_DELAY` | Delay between scraping requests in seconds | `0.5` |
 | `POLLING_INTERVAL_MINUTES` | Polling interval in minutes | `15` |
 | `MAX_ARTICLES_PER_REQUEST` | Max articles per API request | `100` |
 | `LOG_LEVEL` | Logging level | `INFO` |
@@ -128,6 +159,7 @@ The Docker Compose setup includes:
 
 - **Zookeeper**: Required for Kafka
 - **Kafka**: Message broker
+- **Redis**: In-memory database for article deduplication
 - **Kafka UI**: Web interface for monitoring Kafka
 - **News Polling Service**: The main application
 - **Kafka Topics Creator**: Creates required topics on startup
@@ -161,8 +193,10 @@ docker-compose ps
 
 1. **Polling Trigger**: Service polls NewsAPI every 15 minutes (configurable)
 2. **Data Fetching**: Fetches news for each country and category combination
-3. **Kafka Publishing**: Sends raw news data to `raw-news` topic
-4. **Message Structure**: Each message contains metadata and article data
+3. **Deduplication**: Filters out duplicate articles using Redis cache
+4. **Article Scraping**: Extracts full content from article URLs (if enabled)
+5. **Kafka Publishing**: Sends enhanced news data to `raw-news` topic
+6. **Message Structure**: Each message contains metadata, article data, and scraped content
 
 ### Message Format
 
@@ -172,7 +206,22 @@ docker-compose ps
   "source": "top_headlines",
   "country": "us",
   "category": "technology",
-  "articles": [...],
+  "articles": [
+    {
+      "title": "Tech Company Announces New Product",
+      "url": "https://example.com/article",
+      "description": "Brief description...",
+      "scraped_content": {
+        "url": "https://example.com/article",
+        "title": "Tech Company Announces New Product",
+        "content": "Full article content extracted from the webpage...",
+        "author": "John Doe",
+        "published_date": "2024-01-01T10:00:00Z",
+        "scraped_at": 1704123456.789,
+        "scraper": "trafilatura"
+      }
+    }
+  ],
   "total_results": 100
 }
 ```
